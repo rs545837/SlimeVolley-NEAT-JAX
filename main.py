@@ -1,48 +1,58 @@
 import neat
 import gym
 import slimevolleygym
-import numpy as np
+import jax
+import jax.numpy as jnp
 from neat.reporting import StdOutReporter
 from neat.population import CompleteExtinctionException
 import pickle
+
+# Check if GPU is available
+def check_gpu():
+    if jax.default_backend() == 'gpu':
+        print("Using GPU for computation.")
+    else:
+        print("Using CPU for computation.")
 
 # Evaluation function for genomes in the population
 def eval_genomes(genomes, config):
     env = gym.make("SlimeVolley-v0")
     
     for genome_id, genome in genomes:
-        # Create the neural network for the current genome
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         total_reward = 0
         
-        # Play against the built-in AI multiple times to evaluate performance
         for episode in range(5):
             observation = env.reset()
             done = False
             while not done:
-                # Use the neural network to choose an action based on the observation
-                action_values = net.activate(observation)
-                
-                # Map neural network output to the three action spaces:
-                # SlimeVolley has a continuous action space, so we use tanh-like behavior.
-                move_left = action_values[0]  # Move left intensity
-                move_right = action_values[1]  # Move right intensity
-                jump = action_values[2]  # Jump intensity
+                # Get neural network outputs using JAX arrays
+                action_values = jnp.array(net.activate(observation))
 
-                # Create discrete actions based on thresholds, with smooth transitions
-                action = [int(move_left > 0.5), int(move_right > 0.5), int(jump > 0.5)]
+                # Use continuous values for left/right/jump movements
+                move_left = jax.lax.clamp(-1.0, action_values[0], 1.0)
+                move_right = jax.lax.clamp(-1.0, action_values[1], 1.0)
+                jump = jax.lax.clamp(-1.0, action_values[2], 1.0)
+
+                action = [move_left, move_right, jump]  # Continuous actions
                 
-                # Step the environment with the chosen action
+                # Convert JAX array to Python list for compatibility with Gym
+                action = jnp.array(action).tolist()
+                
                 observation, reward, done, info = env.step(action)
+
+                # Additional custom rewards for the agent
+                if observation[1] < observation[3]:  # Example: ball on our side
+                    reward += 0.1  # Encourage moving toward the ball
+                
                 total_reward += reward
 
-        # Set the fitness of the genome based on the total reward earned
         genome.fitness = total_reward / 5  # Average reward over episodes
 
     env.close()
 
 # Function to visualize the best genome in action
-def render_best_genome(winner, config, num_episodes=3):
+def render_best_genome(winner, config, num_episodes=1):
     env = gym.make("SlimeVolley-v0")
     net = neat.nn.FeedForwardNetwork.create(winner, config)
     
@@ -53,13 +63,18 @@ def render_best_genome(winner, config, num_episodes=3):
         while not done:
             env.render()  # Render the environment to visualize it
             
-            # Activate the neural network to choose an action
-            action_values = net.activate(observation)
+            # Get neural network outputs using JAX arrays
+            action_values = jnp.array(net.activate(observation))
+
+            # Use continuous values for left/right/jump movements
             move_left = action_values[0]
             move_right = action_values[1]
             jump = action_values[2]
 
-            action = [int(move_left > 0.5), int(move_right > 0.5), int(jump > 0.5)]
+            action = [move_left, move_right, jump]  # Continuous actions
+            
+            # Convert JAX array to Python list for compatibility with Gym
+            action = jnp.array(action).tolist()
             
             # Step the environment with the chosen action
             observation, reward, done, info = env.step(action)
@@ -69,12 +84,24 @@ def render_best_genome(winner, config, num_episodes=3):
     
     env.close()
 
+# Custom Reporter to render the best genome after each generation
+class VisualizeBestGenomeReporter(neat.reporting.BaseReporter):
+    def __init__(self, config):
+        self.config = config
+    
+    def post_evaluate(self, config, population, species, best_genome):
+        print(f"Rendering best genome of the current generation with fitness {best_genome.fitness}")
+        render_best_genome(best_genome, self.config)
+
 # Run the NEAT algorithm
 def run_neat(config_file):
     # Load the NEAT configuration
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                          neat.DefaultSpeciesSet, neat.DefaultStagnation,
                          config_file)
+
+    # Check if using GPU
+    check_gpu()
 
     # Create the population
     p = neat.Population(config)
@@ -83,6 +110,9 @@ def run_neat(config_file):
     p.add_reporter(StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
+
+    # Add custom reporter for visualizing the best genome
+    p.add_reporter(VisualizeBestGenomeReporter(config))
 
     # Run NEAT for up to 50 generations
     winner = None
