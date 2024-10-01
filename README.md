@@ -27,6 +27,9 @@ pip install slimevolleygym
 
 ```bash
 pip install -r requirements.txt
+pip install neat-python
+pip install opencv-python
+pip install jax
 ```
 
 2. Run the main.py
