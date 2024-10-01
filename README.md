@@ -17,6 +17,12 @@ conda create --name rl_test -y
 conda activate rl_test
 ```
 
+Downgrade pip and setuptools so that you can install slimevolley env:
+```bash
+pip install setuptools==65.5.0 pip==21
+pip install slimevolleygym
+```
+
 1. Start with installing all the requriements
 
 ```bash
