@@ -11,9 +11,10 @@ rm ~/miniconda3/miniconda.sh
 ~/miniconda3/bin/conda init bash
 ```
 
-Create a new env:
+Create and activate new env:
 ```bash
-conda create --name rl_test
+conda create --name rl_test -y
+conda activate rl_test
 ```
 
 1. Start with installing all the requriements
