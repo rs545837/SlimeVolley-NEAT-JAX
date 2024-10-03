@@ -8,7 +8,7 @@ import os
 
 # Set training parameters
 POPULATION_SIZE = 128    # Population size
-MAX_ITER = 500           # Max number of generations
+MAX_ITER = 500000            # Max number of generations
 TEST_INTERVAL = 5        # Interval for testing/rendering the best genome
 
 # Initialize pygame to capture keyboard input
@@ -28,48 +28,47 @@ def eval_genomes(genomes, config):
             episode_reward = 0
 
             while not done:
-                # Optional: Normalize observations
-                # observation = normalize_observation(observation)
-
                 action_values = net.activate(observation)
 
-                # Interpret network outputs as continuous actions
-                move_left = np.clip(action_values[0], 0, 1)   # Ensure values are between 0 and 1
+                move_left = np.clip(action_values[0], 0, 1)
                 move_right = np.clip(action_values[1], 0, 1)
                 jump = np.clip(action_values[2], 0, 1)
                 action = [move_left, move_right, jump]
 
-                # Debugging: Print the chosen action
-                # print(f"Genome {genome_id} - Action: {action}")
-
-                # Send the action to the environment
                 observation, reward, done, info = env.step(action)
 
-                # Extract necessary information from observation
-                # Example observation structure (verify with env):
-                # [agent_x, agent_y, ball_x, ball_y, agent_velocity_x, agent_velocity_y,
-                #  ball_velocity_x, ball_velocity_y, ...]
-                if len(observation) < 12:
-                    # Handle unexpected observation format
-                    print(f"Unexpected observation format: {observation}")
-                    continue
+                ball_x, ball_y = observation[2], observation[3]
+                agent_x, agent_y = observation[0], observation[1]
 
-                ball_x = observation[2]
-                agent_x = observation[0]
+                # Primary reward: following the ball
+                following_reward = 0.5 * (1 - abs(agent_x - ball_x))
 
-                # Reward shaping: Encourage proximity to the ball
-                distance_to_ball = abs(agent_x - ball_x)
-                proximity_reward = 1.0 / (distance_to_ball + 1)
+                # Reward for being close to the ball vertically when it's high
+                vertical_proximity_reward = 2.0 * (1 - abs(agent_y - ball_y)) if ball_y > 0.5 else 0
 
-                # Penalize unnecessary movements
-                movement_penalty = 0.0
-                if move_left > 0.5 and ball_x > agent_x:
-                    movement_penalty -= 0.2  # Moving left when ball is to the right
-                if move_right > 0.5 and ball_x < agent_x:
-                    movement_penalty -= 0.2  # Moving right when ball is to the left
+                # Reward for hitting the ball
+                hit_ball_reward = 1000.0 if reward > 0 else 0.0
 
-                # Combine environment reward with custom rewards
-                combined_reward = reward + proximity_reward + movement_penalty
+                # Small penalty for losing a point to encourage defensive play
+                lose_point_penalty = -10.0 if reward < 0 else 0.0
+
+                # Encourage jumping when the ball is high
+                jump_reward = 5.0 if jump > 0.5 and ball_y > 0.5 else 0.0
+
+                # Slight preference for right side, but much smaller than before
+                right_side_preference = 1.0 if agent_x > 0.5 else 0.0
+
+                # Combine all rewards
+                combined_reward = (
+                    reward * 2.0 +  # Base game reward
+                    following_reward +
+                    vertical_proximity_reward +
+                    hit_ball_reward +
+                    lose_point_penalty +
+                    jump_reward +
+                    right_side_preference
+                )
+
                 episode_reward += combined_reward
 
             total_reward += episode_reward
@@ -78,15 +77,6 @@ def eval_genomes(genomes, config):
         genome.fitness = total_reward / 5
 
     env.close()
-
-def normalize_observation(observation):
-    """
-    Normalizes the observation data to a range suitable for neural network processing.
-    Adjust the normalization based on actual observation ranges.
-    """
-    # Example normalization: Assuming all observation values range between -10 and 10
-    # Modify the range based on actual data
-    return np.clip(observation, -10, 10) / 10.0
 
 # Function to visualize the best genome
 def render_best_genome(winner, config, num_episodes=1):
@@ -105,15 +95,11 @@ def render_best_genome(winner, config, num_episodes=1):
 
             # Interpret network outputs as continuous actions
             action_values = net.activate(observation)
-            move_left = np.clip(action_values[0], 0, 1)   # Ensure values are between 0 and 1
+            move_left = np.clip(action_values[0], 0, 1)
             move_right = np.clip(action_values[1], 0, 1)
             jump = np.clip(action_values[2], 0, 1)
             action = [move_left, move_right, jump]
 
-            # Debugging: Print the chosen action
-            # print(f"Rendering Episode {episode + 1} - Action: {action}")
-
-            # Send the action to the environment
             observation, reward, done, info = env.step(action)
             total_reward += reward
 
@@ -124,19 +110,22 @@ def render_best_genome(winner, config, num_episodes=1):
 
     env.close()
 
-# Custom Reporter to render the best genome after every TEST_INTERVAL generations
+# Custom NEAT reporter to render best genome and save it at intervals
 class VisualizeBestGenomeReporter(neat.reporting.BaseReporter):
-    def __init__(self, config, save_interval=50):
+    def __init__(self, config, save_interval=10):
         self.config = config
         self.generation = 0
         self.save_interval = save_interval
 
     def post_evaluate(self, config, population, species, best_genome):
         self.generation += 1
-        if self.generation % TEST_INTERVAL == 0:
+        
+        # Render the best genome only every TEST_INTERVAL generations
+        if self.generation % TEST_INTERVAL == 0:  # Render after every 5 generations
             print(f"\nRendering the best genome at generation {self.generation}...")
-            render_best_genome(best_genome, self.config)
+            render_best_genome(best_genome, self.config, num_episodes=1)
 
+        # Save the best genome at the specified save_interval
         if self.generation % self.save_interval == 0:
             with open(f"best_genome_gen_{self.generation}.pkl", "wb") as f:
                 pickle.dump(best_genome, f)
@@ -145,16 +134,15 @@ class VisualizeBestGenomeReporter(neat.reporting.BaseReporter):
     def complete_extinction(self):
         print("Population extinct.")
 
-    def species_stagnant(self, species):
-        print(f"Species {species.key} is stagnant.")
+    # Update this function to accept 3 arguments
+    def species_stagnant(self, sid, species):
+        print(f"Species {sid} is stagnant with {len(species.members)} members.")
 
-# Run NEAT evolution
+
 def run_neat(config_file):
-    # Check if the config file exists
     if not os.path.exists(config_file):
         raise FileNotFoundError(f"Configuration file '{config_file}' not found.")
 
-    # Load the NEAT configuration
     config = neat.Config(
         neat.DefaultGenome,
         neat.DefaultReproduction,
@@ -163,26 +151,22 @@ def run_neat(config_file):
         config_file
     )
 
-    # Create the population
     p = neat.Population(config)
 
-    # Add reporters for logging
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
+    p.add_reporter(VisualizeBestGenomeReporter(config, save_interval=10))
 
-    # Add the custom visualization reporter with saving capability
-    p.add_reporter(VisualizeBestGenomeReporter(config, save_interval=50))
-
-    # Run NEAT for a defined number of generations
+    # Run NEAT for the specified number of generations
     winner = p.run(eval_genomes, MAX_ITER)
 
     # Save the best genome
-    with open("best_genome.pkl", "wb") as f:
+    with open("best_genome_final.pkl", "wb") as f:
         pickle.dump(winner, f)
-    print("Best genome saved to 'best_genome.pkl'.")
+    print("Final best genome saved to 'best_genome_final.pkl'.")
 
-    # Render the best genome's gameplay at the end
+    # Render the final best genome's gameplay
     print("Rendering the final best genome...")
     render_best_genome(winner, config, num_episodes=3)
 
