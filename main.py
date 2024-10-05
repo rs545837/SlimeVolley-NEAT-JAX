@@ -41,10 +41,10 @@ def eval_genomes(genomes, config):
                 agent_x, agent_y = observation[0], observation[1]
 
                 # Primary reward: following the ball
-                following_reward = 0.5 * (1 - abs(agent_x - ball_x))
+                following_reward = 0.5 * (1 - (agent_x - ball_x))
 
                 # Reward for being close to the ball vertically when it's high
-                vertical_proximity_reward = 2.0 * (1 - abs(agent_y - ball_y)) if ball_y > 0.5 else 0
+                vertical_proximity_reward = 10.0 * (1 - abs(agent_y - ball_y)) if ball_y > 0.5 else 0
 
                 # Reward for hitting the ball
                 hit_ball_reward = 1000.0 if reward > 0 else 0.0
