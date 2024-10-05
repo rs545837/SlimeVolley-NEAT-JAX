@@ -41,16 +41,16 @@ def eval_genomes(genomes, config):
                 agent_x, agent_y = observation[0], observation[1]
 
                 # Primary reward: following the ball
-                following_reward = 0.45 * (1 - abs(agent_x - ball_x))
+                following_reward = 0.5 * (1 - (agent_x - ball_x))
 
                 # Reward for being close to the ball vertically when it's high
-                vertical_proximity_reward = 2.0 * (1 - abs(agent_y - ball_y)) if ball_y > 0.5 else 0
+                vertical_proximity_reward = 5.0 * (1 - abs(agent_y - ball_y)) if ball_y > 0.5 else 0
 
                 # Reward for hitting the ball
-                hit_ball_reward = 1000.0 if reward > 0 else 0.0
+                hit_ball_reward = 1500.0 if reward > 0 else 0.0
 
                 # Small penalty for losing a point to encourage defensive play
-                lose_point_penalty = -10.0 if reward < 0 else 0.0
+                lose_point_penalty = -100.0 if reward < 0 else 0.0
 
                 # Encourage jumping when the ball is high
                 jump_reward = 5.0 if jump > 0.5 and ball_y > 0.5 else 0.0
