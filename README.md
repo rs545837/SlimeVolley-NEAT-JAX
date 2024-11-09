@@ -30,6 +30,7 @@ pip install -r requirements.txt
 pip install neat-python
 pip install opencv-python
 pip install jax
+pip install pygame
 ```
 
 2. Run the main.py
