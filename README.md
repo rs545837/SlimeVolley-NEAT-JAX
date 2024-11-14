@@ -33,10 +33,10 @@ pip install jax
 pip install pygame
 ```
 
-2. Run the main.py
+2. Run the main_v3.py
 
 ```bash
-python main.py 
+python main_v3.py 
 ```
 
 
