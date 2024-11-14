@@ -31,6 +31,7 @@ pip install neat-python
 pip install opencv-python
 pip install jax
 pip install pygame
+pip install graphviz matplotlib
 ```
 
 2. Run the main_v3.py
