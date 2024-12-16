@@ -21,6 +21,7 @@ Downgrade pip and setuptools so that you can install slimevolley env:
 ```bash
 pip install setuptools==65.5.0 pip==21
 pip install slimevolleygym
+pip install imageio
 ```
 
 ```
