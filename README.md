@@ -23,6 +23,11 @@ pip install setuptools==65.5.0 pip==21
 pip install slimevolleygym
 ```
 
+```
+pip install --upgrade pip
+pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+```
+
 1. Start with installing all the requriements
 
 ```bash
