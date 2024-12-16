@@ -45,5 +45,9 @@ pip install graphviz matplotlib
 python main_v3.py 
 ```
 
+```
+xvfb-run -s "-screen 0 1400x900x24" python main_jax.py
+```
+
 
 
