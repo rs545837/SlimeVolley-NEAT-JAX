@@ -45,6 +45,10 @@ pip install graphviz matplotlib
 ```bash
 python main_v3.py 
 ```
+```
+apt-get update
+apt-get install xvfb
+```
 
 ```
 xvfb-run -s "-screen 0 1400x900x24" python main_jax.py
