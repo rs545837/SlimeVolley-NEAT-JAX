@@ -24,11 +24,6 @@ pip install slimevolleygym
 pip install imageio
 ```
 
-```
-pip install --upgrade pip
-pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-```
-
 1. Start with installing all the requriements
 
 ```bash
@@ -38,6 +33,11 @@ pip install opencv-python
 pip install jax
 pip install pygame
 pip install graphviz matplotlib
+```
+
+```
+pip install --upgrade pip
+pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 
 2. Run the main_v3.py
