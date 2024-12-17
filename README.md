@@ -49,6 +49,10 @@ python main_v3.py
 apt-get update
 apt-get install xvfb
 ```
+```
+pip install --upgrade pip==23.0
+pip install "gym==0.19.0"
+```
 
 ```
 xvfb-run -s "-screen 0 1400x900x24" python main_jax.py
