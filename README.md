@@ -48,6 +48,7 @@ python main_v3.py
 ```
 apt-get update
 apt-get install xvfb
+apt-get install -y python3-opengl libglu1-mesa-dev freeglut3-dev
 ```
 ```
 pip install --upgrade pip==23.0
