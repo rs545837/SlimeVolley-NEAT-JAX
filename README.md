@@ -52,6 +52,7 @@ apt-get install xvfb
 ```
 pip install --upgrade pip==23.0
 pip install "gym==0.19.0"
+pip install pyglet
 ```
 
 ```
